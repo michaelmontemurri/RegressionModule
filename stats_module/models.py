@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
-from sklearn import NotFittedError
-from utils import *
+from stats_module.utils import *
 
 
 class OLS:
@@ -48,7 +47,7 @@ class OLS:
         
     def predict(self, X):
         if self.beta is None:
-            raise NotFittedError("This OLS instance is not fitted yet. "
+            raise ValueError("This OLS instance is not fitted yet. "
                                    "Call 'fit' with appropriate data before using this estimator.")
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
@@ -67,7 +66,7 @@ class OLS:
     #function to calculate the leverage of each observation
     def leverages(self, X):
         if self.beta is None:
-            raise NotFittedError("This OLS instance is not fitted yet. "
+            raise ValueError("This OLS instance is not fitted yet. "
                                    "Call 'fit' with appropriate data before using this estimator.")
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
@@ -132,7 +131,7 @@ class GLS:
         
     def predict(self, X):
         if self.beta is None:
-            raise NotFittedError("This GLS instance is not fitted yet. "
+            raise ValueError("This GLS instance is not fitted yet. "
                                     "Call 'fit' with appropriate data before using this estimator.")
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
