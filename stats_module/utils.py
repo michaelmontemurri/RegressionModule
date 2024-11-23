@@ -25,8 +25,6 @@ def validate_data(X, y):
         raise ValueError("y cannot be all NaN.")
     
 
-
-
 # sigma_hat_corr^2 estimator.
 def sigma_hat_corr(X, y, y_hat):
     n = X.shape[0]
