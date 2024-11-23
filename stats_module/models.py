@@ -220,13 +220,22 @@ class OLS:
             Summary containing coefficients and R-squared value.
         """
         y_hat = self.predict(X)
-        ss_total = np.sum((y - np.mean(y))**2)  # Total sum of squares
-        ss_res = np.sum((y - y_hat)**2)         # Residual sum of squares
-        r_squared = 1 - ss_res/ss_total
-        #regularized r_squared
-        #r_squared = 1 - (ss_res/(X.shape[0]-X.shape[1]-1))/(ss_total/(X.shape[0]-1))
-        return {'coefficients': self.beta, 'r_squared': r_squared}
+        
+        ss_total = np.sum((y - np.mean(y))**2)
+        ss_res = np.sum((y - y_hat)**2)
 
+        r_squared = 1 - ss_res / ss_total
+        
+        # Adjusted R-squared (corrected for the number of predictors and observations)
+        n, p = X.shape  # n = number of observations, p = number of features
+        adjusted_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p - 1)
+        
+        # Return the summary with coefficients and R-squared values
+        return {
+            'coefficients': self.beta,
+            'r_squared': r_squared,
+            'adjusted_r_squared': adjusted_r_squared
+        }
 
     
             
