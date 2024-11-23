@@ -1,5 +1,5 @@
 import numpy as np
-import utils
+import stats_module.utils
 import copy
 
 def naive_loss_estimation(model, X, y):
@@ -13,7 +13,7 @@ def naive_loss_estimation(model, X, y):
     Returns:
         - (float)   The naive loss estimate for model over the dataset (X,y)
     """
-    utils.validate_data(X,y)
+    stats_module.utils.validate_data(X,y)
 
     model.fit(X)
     y_pred = model.predict(X)
@@ -36,8 +36,8 @@ def train_test_loss_estimation(model, X_train, y_train, X_test, y_test):
     Returns:
         - (float)   The naive loss for model over the dataset (X,y)
     """
-    utils.validate_data(X_train, y_train)
-    utils.validate_data(X_test, y_test)
+    stats_module.utils.validate_data(X_train, y_train)
+    stats_module.utils.validate_data(X_test, y_test)
 
     training_model = copy.deepcopy(model)
     training_model.fit(X_train, y_train)
@@ -60,7 +60,7 @@ def loo_loss_estimation(model, X, y):
     Returns:
         - (float)   The leave-one-out loss estimate for model over the dataset (X,y)
     """
-    utils.validate_data(X,y)
+    stats_module.utils.validate_data(X,y)
     
     y_pred = np.empty(y.shape[0])
     for i in range(X.shape[0]):
