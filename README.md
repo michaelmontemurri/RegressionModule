@@ -1,6 +1,6 @@
-# Stats Module Project
+# Regression and ANOVA Module Project
 
-A Python package that implements fundamental statistical methods from scratch. This project serves as a learning tool and reference for statistical techniques, with detailed examples and usage in accompanying Jupyter notebooks.
+A package that implements fundamental estimators, hypothesis testing, diagonostics, etc. from scratch. We provide detailed examples and usage in the accompanying jupyter notebooks.
 
 ---
 
