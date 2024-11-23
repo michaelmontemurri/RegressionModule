@@ -1,7 +1,8 @@
 import numpy as np
 import pandas as pd
 from sklearn import NotFittedError
-from utils import sigma_hat_corr
+from utils import *
+
 
 class OLS:
     def __init__(self, include_intercept=True):
@@ -24,8 +25,9 @@ class OLS:
         None
         '''
 
+        #validate data
+        validate_data(X, y)
 
-            
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
@@ -108,14 +110,8 @@ class GLS:
         -------
         None
         '''
-        if y.ndim > 1:
-            raise ValueError("y must be a 1-dimensional array.")
-
-        if X.shape[0] != y.shape[0]:
-            raise ValueError("X and y must have the same number of observations.")
- 
-        if isinstance(X, pd.DataFrame) and X.select_dtypes(include='object').shape[1] > 0:
-            raise ValueError("X cannot have categorical variables.")
+        #validate data
+        validate_data(X, y)
             
         if isinstance(sigma, pd.DataFrame):
             sigma = sigma.values
