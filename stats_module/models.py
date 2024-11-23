@@ -24,14 +24,7 @@ class OLS:
         None
         '''
 
-        if y.ndim > 1:
-            raise ValueError("y must be a 1-dimensional array.")
-        
-        if X.shape[0] != y.shape[0]:
-            raise ValueError("X and y must have the same number of observations.")
 
-        if isinstance(X, pd.DataFrame) and X.select_dtypes(include='object').shape[1] > 0:
-            raise ValueError("X cannot have categorical variables.")
             
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
