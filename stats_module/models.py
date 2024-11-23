@@ -1,161 +1,241 @@
 import numpy as np
 import pandas as pd
-from sklearn import NotFittedError
-from utils import sigma_hat_corr
+from stats_module.utils import *
+
 
 class OLS:
+    """
+    Ordinary Least Squares (OLS) regression model.
+
+    Attributes
+    ----------
+    include_intercept : bool
+        Indicates whether to include an intercept term in the model.
+    beta : numpy array
+        The estimated coefficients of the regression model.
+    """
     def __init__(self, include_intercept=True):
+        """
+        Initialize the OLS model.
+
+        Parameters
+        ----------
+        include_intercept : bool, optional
+            Whether to include an intercept term in the model (default is True).
+        """
         self.include_intercept = include_intercept
         self.beta = None
 
-    #should we make use_gradient_descent a parameter automatically use it if p>threshold?
+    def gradient_descent(self, X, y, learning_rate=0.01, n_iterations=1000, tolerance=1e-6, return_loss=False):
+        """
+        Perform gradient descent to fit the OLS model.
+
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix (independent variables).
+        y : numpy array or pandas Series
+            The response variable (dependent variable).
+        learning_rate : float, optional
+            The learning rate for gradient descent (default is 0.01).
+        n_iterations : int, optional
+            The number of iterations for gradient descent (default is 1000).
+
+        Returns
+        -------
+        None
+        """
+            # Initialize coefficients and storage for loss
+        self.beta = np.zeros(X.shape[1])
+        loss_history = []
+
+        for _ in range(n_iterations):
+            residuals = y - X @ self.beta
+            gradient = -2 / X.shape[0] * X.T @ residuals
+            beta_new = self.beta - learning_rate * gradient
+
+            # Record loss
+            loss = np.mean(residuals ** 2)
+            loss_history.append(loss)
+
+            # Check for convergence
+            if np.allclose(beta_new, self.beta, atol=tolerance):
+                self.beta = beta_new
+                break
+
+            self.beta = beta_new
+
+        if return_loss:
+            return loss_history
+
     def fit(self, X, y, use_gradient_descent=False):
-        '''
+        """
         Fit the OLS model to the data.
 
         Parameters
         ----------
         X : numpy array or pandas DataFrame
-            The feature matrix.
+            The feature matrix (independent variables).
         y : numpy array or pandas Series
+            The response variable (dependent variable).
+        use_gradient_descent : bool, optional
+            Whether to use gradient descent for fitting (default is False).
 
         Returns
         -------
         None
-        '''
+        """
+        # Validate input data
+        validate_data(X, y)
 
-
-            
+        # Add intercept term if required
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
             X_ = X
 
         if use_gradient_descent:
-            #use gradient descent to find beta
-            #will implement this logic later
+            # Logic for gradient descent (to be implemented later)
+            self.gradient_descent(X_, y)
             pass
-        # Check for multicollinearity and singular matrix issues
-        try:
-            self.beta = np.linalg.inv(X_.T @ X_) @ X_.T @ y
+        else:
+            # Fit using the normal equation
+            try:
+                self.beta = np.linalg.inv(X_.T @ X_) @ X_.T @ y
+            except np.linalg.LinAlgError:
+                raise Warning(
+                    "Feature matrix is singular or nearly singular. "
+                    "Check for highly correlated features."
+                )
 
-        except np.linalg.LinAlgError:
-            raise Warning("feature matrix is singular or nearly singular, "
-                          "check for highly correlated features.")
-        
-        
     def predict(self, X):
+        """
+        Predict using the fitted OLS model.
+
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix for prediction.
+
+        Returns
+        -------
+        numpy array
+            Predicted values for the given feature matrix.
+        """
         if self.beta is None:
-            raise NotFittedError("This OLS instance is not fitted yet. "
-                                   "Call 'fit' with appropriate data before using this estimator.")
+            raise ValueError(
+                "This OLS instance is not fitted yet. "
+                "Call 'fit' with appropriate data before using this estimator."
+            )
+        
+        # Add intercept term if required
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
             X_ = X
 
         return X_ @ self.beta
-    
 
     def estimate_variance(self, X, y):
-        # estimate variance of beta_hat
-        #maybe we should have them pass y hat instead of calculating it here.
-        y_hat = self.predict(X)
-        return sigma_hat_corr(X, y, y_hat)
-    
-    #function to calculate the leverage of each observation
-    def leverages(self, X):
-        if self.beta is None:
-            raise NotFittedError("This OLS instance is not fitted yet. "
-                                   "Call 'fit' with appropriate data before using this estimator.")
-        if self.include_intercept:
-            X_ = np.column_stack([np.ones(X.shape[0]), X])
-        else:
-            X_ = X
-        h = X_ @ np.linalg.inv(X_.T @ X_) @ X_.T
-        return np.diag(h)
-    
-    def residuals(self, X, y):
-        y_hat = self.predict(X)
-        return y - y_hat
-    
-    def summary(self, X, y):
-        y_hat = self.predict(X)
-        ss_total = np.sum((y - np.mean(y))**2)
-        ss_res = np.sum((y - y_hat)**2)
-        r_squared = 1 - ss_res/ss_total
-        return {'coefficients': self.beta, 'r_squared': r_squared}
-    
-
-class GLS:
-    def __init__(self, include_intercept=True):
-        self.include_intercept = include_intercept
-        self.beta = None
-        self.sigma = None
-
-    def fit(self, X, y, sigma):
-        '''
-        Fit the GLS model to the data.
+        """
+        Estimate the variance of the residuals.
 
         Parameters
         ----------
         X : numpy array or pandas DataFrame
             The feature matrix.
         y : numpy array or pandas Series
-        sigma : numpy array
-            The weight matrix.
+            The response variable.
 
         Returns
         -------
-        None
-        '''
-        if y.ndim > 1:
-            raise ValueError("y must be a 1-dimensional array.")
+        float
+            Estimated variance of the residuals.
+        """
+        y_hat = self.predict(X)
+        return sigma_hat_corr(X, y, y_hat)
 
-        if X.shape[0] != y.shape[0]:
-            raise ValueError("X and y must have the same number of observations.")
- 
-        if isinstance(X, pd.DataFrame) and X.select_dtypes(include='object').shape[1] > 0:
-            raise ValueError("X cannot have categorical variables.")
-            
-        if isinstance(sigma, pd.DataFrame):
-            sigma = sigma.values
+    def leverages(self, X):
+        """
+        Calculate the leverage values for each observation.
 
-        if self.include_intercept:
-            X_ = np.column_stack([np.ones(X.shape[0]), X])
-        else:
-            X_ = X
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix.
 
-        # Check for multicollinearity and singular matrix issues
-        try:
-            self.beta = np.linalg.inv(X_.T @ np.linalg.inv(sigma) @ X_) @ X_.T @ np.linalg.inv(sigma) @ y
-        except np.linalg.LinAlgError:
-            raise Warning("feature matrix is singular or nearly singular, "
-                          "check for highly correlated features.")
-        
-        self.sigma = sigma
-        
-    def predict(self, X):
+        Returns
+        -------
+        numpy array
+            Leverage values for each observation.
+        """
         if self.beta is None:
-            raise NotFittedError("This GLS instance is not fitted yet. "
-                                    "Call 'fit' with appropriate data before using this estimator.")
+            raise ValueError(
+                "This OLS instance is not fitted yet. "
+                "Call 'fit' with appropriate data before using this estimator."
+            )
+        
+        # Add intercept term if required
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
             X_ = X
 
-        return X_ @ self.beta
+        h = X_ @ np.linalg.inv(X_.T @ X_) @ X_.T
+        return np.diag(h)
 
     def residuals(self, X, y):
+        """
+        Calculate the residuals (differences between observed and predicted values).
+
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix.
+        y : numpy array or pandas Series
+            The response variable.
+
+        Returns
+        -------
+        numpy array
+            Residuals for the given data.
+        """
         y_hat = self.predict(X)
         return y - y_hat
 
     def summary(self, X, y):
+        """
+        Generate a summary of the fitted model, including coefficients and R-squared.
+
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix.
+        y : numpy array or pandas Series
+            The response variable.
+
+        Returns
+        -------
+        dict
+            Summary containing coefficients and R-squared value.
+        """
         y_hat = self.predict(X)
+        
         ss_total = np.sum((y - np.mean(y))**2)
         ss_res = np.sum((y - y_hat)**2)
-        r_squared = 1 - ss_res/ss_total
-        return {'coefficients': self.beta, 'r_squared': r_squared}
 
+        r_squared = 1 - ss_res / ss_total
+        
+        # Adjusted R-squared (corrected for the number of predictors and observations)
+        n, p = X.shape  # n = number of observations, p = number of features
+        adjusted_r_squared = 1 - (1 - r_squared) * (n - 1) / (n - p - 1)
+        
+        # Return the summary with coefficients and R-squared values
+        return {
+            'coefficients': self.beta,
+            'r_squared': r_squared,
+            'adjusted_r_squared': adjusted_r_squared
+        }
 
     
             
