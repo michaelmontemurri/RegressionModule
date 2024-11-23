@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from sklearn import NotFittedError
 from sklearn.preprocessing import OneHotEncoder
+from utils import sigma_hat_corr
 
 class OLS:
     def __init__(self, include_intercept=True):
@@ -45,6 +46,14 @@ class OLS:
 
         return X_ @ self.beta
     
+
+    def estimate_variance(self, X, y):
+        # estimate variance of beta_hat
+
+        #maybe we should have them pass y hat instead of calculating it here.
+        y_hat = self.predict(X)
+        return sigma_hat_corr(X, y, y_hat)
+    
     def residuals(self, X, y):
         y_hat = self.predict(X)
         return y - y_hat
@@ -55,5 +64,7 @@ class OLS:
         ss_res = np.sum((y - y_hat)**2)
         r_squared = 1 - ss_res/ss_total
         return {'coefficients': self.beta, 'r_squared': r_squared}
+    
+
     
             
