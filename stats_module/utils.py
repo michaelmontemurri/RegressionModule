@@ -11,12 +11,21 @@ def validate_data(X, y):
     #check for categorical variables
     if isinstance(X, pd.DataFrame) and X.select_dtypes(include='object').shape[1] > 0:
         raise ValueError("X cannot have categorical variables.")
-
-
-
+    
+    #check that X and y are all numeric
+    if not np.issubdtype(X.dtype, np.number):
+        raise ValueError("X must be all numeric.")
+    if not np.issubdtype(y.dtype, np.number):
+        raise ValueError("y must be numeric.")
+    
+    #check that X and y are not all NaN
+    if X.isnull().all().all():
+        raise ValueError("X cannot be all NaN.")
+    if y.isnull().all():
+        raise ValueError("y cannot be all NaN.")
     
 
-    
+
 
 # sigma_hat_corr^2 estimator.
 def sigma_hat_corr(X, y, y_hat):
