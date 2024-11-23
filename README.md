@@ -5,30 +5,18 @@ A Python package that implements fundamental statistical methods from scratch. T
 ---
 
 ## **Project Structure**
-stats_module_project/ 
-
-├── notebooks/ # Jupyter notebooks with implementation examples and documentation 
-
-├── stats_module/ # Python package for statistical methods 
-
-    ├── init.py # Makes the directory a Python package 
-
-    ├── diagnostics.py # Diagnostics tools for statistical analysis 
-
-    ├── estimators.py # Estimation methods (e.g., mean, variance) 
-
-    ├── hyp_testing.py # Hypothesis testing methods 
-
-├── venv/ # Python virtual environment (excluded in .gitignore)
-
-├── .gitignore # Files and folders to ignore in the repository 
-
-├── README.md # Project overview and usage instructions 
-
-├── requirements.txt # Project dependencies 
-
-├── setup.py # Packaging configuration
-
+stats_module_project/
+├── notebooks/             # notebooks with implementation examples and documentation
+├── stats_module/          # package for methods
+│   ├── __init__.py        # makes the directory a Python package
+│   ├── diagnostics.py     # diagnostics tools for statistical analysis
+│   ├── estimators.py      # estimator methods
+│   ├── hyp_testing.py     # hypothesis testing methods
+├── venv/                  # virtual environment (excluded in .gitignore)
+├── .gitignore             # stuff to ignore in the repository
+├── README.md              # project overview and usage instructions
+├── requirements.txt       # dependencies
+├── setup.py               # packaging configuration
 
 ---
 
