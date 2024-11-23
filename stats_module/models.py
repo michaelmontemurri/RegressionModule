@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from sklearn import NotFittedError
-from sklearn.preprocessing import OneHotEncoder
 from utils import sigma_hat_corr
 
 class OLS:
@@ -10,7 +9,7 @@ class OLS:
         self.beta = None
 
     #should we make use_gradient_descent a parameter automatically use it if p>threshold?
-    def fit(self, X, y):
+    def fit(self, X, y, use_gradient_descent=False):
         '''
         Fit the OLS model to the data.
 
@@ -39,6 +38,10 @@ class OLS:
         else:
             X_ = X
 
+        if use_gradient_descent:
+            #use gradient descent to find beta
+            #will implement this logic later
+            pass
         # Check for multicollinearity and singular matrix issues
         try:
             self.beta = np.linalg.inv(X_.T @ X_) @ X_.T @ y
