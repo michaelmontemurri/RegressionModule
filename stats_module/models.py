@@ -26,6 +26,48 @@ class OLS:
         self.include_intercept = include_intercept
         self.beta = None
 
+    def gradient_descent(self, X, y, learning_rate=0.01, n_iterations=1000, tolerance=1e-6, return_loss=False):
+        """
+        Perform gradient descent to fit the OLS model.
+
+        Parameters
+        ----------
+        X : numpy array or pandas DataFrame
+            The feature matrix (independent variables).
+        y : numpy array or pandas Series
+            The response variable (dependent variable).
+        learning_rate : float, optional
+            The learning rate for gradient descent (default is 0.01).
+        n_iterations : int, optional
+            The number of iterations for gradient descent (default is 1000).
+
+        Returns
+        -------
+        None
+        """
+            # Initialize coefficients and storage for loss
+        self.beta = np.zeros(X.shape[1])
+        loss_history = []
+
+        for _ in range(n_iterations):
+            residuals = y - X @ self.beta
+            gradient = -2 / X.shape[0] * X.T @ residuals
+            beta_new = self.beta - learning_rate * gradient
+
+            # Record loss
+            loss = np.mean(residuals ** 2)
+            loss_history.append(loss)
+
+            # Check for convergence
+            if np.allclose(beta_new, self.beta, atol=tolerance):
+                self.beta = beta_new
+                break
+
+            self.beta = beta_new
+
+        if return_loss:
+            return loss_history
+
     def fit(self, X, y, use_gradient_descent=False):
         """
         Fit the OLS model to the data.
@@ -54,6 +96,7 @@ class OLS:
 
         if use_gradient_descent:
             # Logic for gradient descent (to be implemented later)
+            self.gradient_descent(X_, y)
             pass
         else:
             # Fit using the normal equation
@@ -179,8 +222,9 @@ class OLS:
         y_hat = self.predict(X)
         ss_total = np.sum((y - np.mean(y))**2)  # Total sum of squares
         ss_res = np.sum((y - y_hat)**2)         # Residual sum of squares
-        r_squared = 1 - ss_res / ss_total      # Coefficient of determination
-
+        r_squared = 1 - ss_res/ss_total
+        #regularized r_squared
+        #r_squared = 1 - (ss_res/(X.shape[0]-X.shape[1]-1))/(ss_total/(X.shape[0]-1))
         return {'coefficients': self.beta, 'r_squared': r_squared}
 
 
