@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from sklearn import NotFittedError
+from sklearn.preprocessing import OneHotEncoder
 
 class LinearRegression:
     def __init__(self, include_intercept=True):
@@ -13,8 +14,13 @@ class LinearRegression:
 
         # handle categorical data by converting categorical columns into dummy variables
         if isinstance(X, pd.DataFrame):
-            X = pd.get_dummies(X, drop_first=True)  # drop first to avoid multicollinearity
-        
+            enc = OneHotEncoder(drop='first')
+            #onehot encode the categorical columns
+            enc.fit(X.select_dtypes(include='object'))
+            X = pd.concat([X.drop(enc.get_feature_names(), axis=1), 
+                           pd.DataFrame(enc.transform(X.select_dtypes(include='object')).toarray(), 
+                                        columns=enc.get_feature_names())], axis=1)
+            
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
@@ -35,8 +41,11 @@ class LinearRegression:
                                    "Call 'fit' with appropriate data before using this estimator.")
 
         if isinstance(X, pd.DataFrame):
-            X = pd.get_dummies(X, drop_first=True)  # Drop first to avoid multicollinearity
-        
+            enc = OneHotEncoder(drop='first')
+            enc.fit(X.select_dtypes(include='object'))
+            X = pd.concat([X.drop(enc.get_feature_names(), axis=1), 
+                           pd.DataFrame(enc.transform(X.select_dtypes(include='object')).toarray(), 
+                                        columns=enc.get_feature_names())], axis=1)
         if self.include_intercept:
             X_ = np.column_stack([np.ones(X.shape[0]), X])
         else:
