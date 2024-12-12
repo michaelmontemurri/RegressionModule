@@ -1,4 +1,5 @@
 import numpy as np
+from stats_module.utils import *
 from scipy.stats import t, f
 
 class LinearModelTester:
@@ -18,28 +19,31 @@ class LinearModelTester:
             - null_hypothesis: The null hypothesis to be tested.
             - alpha: The significance level.
         Returns:
-            - A list of dictionaries containing the coefficient, t-statistic, p-value, and whether to reject the null hypothesis
+            - A list of dictionaries containing the coefficient, beta estimate, null value, t-statistic, p-value, and whether to reject the null hypothesis.
         '''
 
+        y_hat = self.model.predict(X)
+
         n, p = X.shape
+
         if self.model.include_intercept:
             p += 1
+            X_ = np.column_stack([np.ones(X.shape[0]), X])
+        else:
+            X_ = X
+
+        sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
         
-        residuals = self.model.residuals(X, y)
-        
-        sigma_hat_corr = np.sum(residuals**2)/(n-p)
-        if self.model.include_intercept:
-            X = np.column_stack([np.ones(X.shape[0]), X])
-        
-        var_beta_hat = sigma_hat_corr * np.linalg.inv(X.T @ X)
+        var_beta_hat = sigma_hat_corr_squared* np.linalg.inv(X_.T @ X_)
 
         results = []
-        for i, (beta_j, b_j, root_var) in enumerate(zip(self.model.beta, null_hypothesis, np.sqrt(np.diag(var_beta_hat)))):
-            t_stat = (beta_j - b_j) / root_var
+        for j, (beta_j, b_j, var_j) in enumerate(zip(self.model.beta, null_hypothesis, np.diag(var_beta_hat))):
+            standard_error = np.sqrt(var_j)
+            t_stat = (beta_j - b_j) / standard_error
             p_value = 2 * (1 - t.cdf(abs(t_stat), df=n - p))
             reject_flag = p_value < alpha
             results.append({
-                'coefficient': i,
+                'coefficient': j,
                 'beta_estimate': beta_j,
                 'null_value': b_j,
                 't_stat': t_stat,
@@ -48,7 +52,7 @@ class LinearModelTester:
             })
         return results
     
-    def hypotheses_f_test(self, X, y, R, r, alpha=0.05):
+    def hypothesis_F_test(self, X, y, R, r, alpha=0.05):
         '''
         Perform an F-test for linear hypotheses Rbeta=r.
         Params:
@@ -60,21 +64,21 @@ class LinearModelTester:
         Returns:
             - A dictionary containing the F-statistic, p-value, and whether to reject the null hypothesis
         '''
+        y_hat = self.model.predict(X)
+
         n, p = X.shape
+
         if self.model.include_intercept:
             p += 1
-        
-        residuals = self.model.residuals(X, y)
-        
-        sigma_hat_corr = np.sum(residuals**2)/(n-p)
-        if self.model.include_intercept:
-            X = np.column_stack([np.ones(X.shape[0]), X])
-        
-        var_beta_hat = sigma_hat_corr * np.linalg.inv(X.T @ X)
+            X_ = np.column_stack([np.ones(X.shape[0]), X])
+        else:
+            X_ = X
 
-        R_beta_r = R @ self.model.beta - r
+        sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
 
-        F_stat = (R_beta_r.T @ np.linalg.inv(R @ np.linalg.inv(X.T @ X) @ R.T) @ R_beta_r / R.shape[0]) / sigma_hat_corr
+        R_beta_r = (R @ self.model.beta.T - r).reshape(-1, 1) 
+
+        F_stat = (R_beta_r.T @ np.linalg.inv(R @ np.linalg.inv(X_.T @ X_) @ R.T) @ R_beta_r / R.shape[0]) / sigma_hat_corr_squared
         p_value = 1 - f.cdf(F_stat, R.shape[0], n-p)
         reject_flag = p_value < alpha
         return {
@@ -87,46 +91,90 @@ class LinearModelTester:
         '''
         Construct confidence intervals for coefficients.
         '''
+        y_hat = self.model.predict(X)
+
         n, p = X.shape
+
         if self.model.include_intercept:
             p += 1
+            X_ = np.column_stack([np.ones(X.shape[0]), X])
+        else:
+            X_ = X
+
+        sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
         
-        residuals = self.model.residuals(X, y)
-        sigma_hat_corr = np.sum(residuals**2)/(n-p)
-        if self.model.include_intercept:
-            X = np.column_stack([np.ones(X.shape[0]), X])
-        
-        var_beta_hat = sigma_hat_corr * np.linalg.inv(X.T @ X)
+        var_beta_hat = sigma_hat_corr_squared* np.linalg.inv(X_.T @ X_)
 
         t_crit = t.ppf(1 - alpha/2, n-p)
         intervals = []
         for i, beta_hat_j in enumerate(self.model.beta):
             margin = t_crit * np.sqrt(var_beta_hat[i,i])
-            intervals.append((beta_hat_j - margin, beta_hat_j + margin))
-            
-    def confidence_interval_multiple_coefficients_simultaneously(self, beta_hat, se_beta_hat, alpha=0.05):
+            intervals.append({
+                'coefficient': i,
+                'beta_estimate': beta_hat_j,
+                'confidence_lower': beta_hat_j - margin, 
+                'confidence_upper': beta_hat_j + margin
+                }) 
+        return intervals
+    
+    def prediction_interval_m(self, X, y, x_new, alpha=0.05):
         '''
-        Calculate a confidence interval for multiple coefficients simultaneously.
+        Construct prediction intervals for a new observation.
         '''
+        y_hat = self.model.predict(X)
+
+        n, p = X.shape
+
+        if self.model.include_intercept:
+            p += 1
+            X_ = np.column_stack([np.ones(X.shape[0]), X])
+            x_new = np.insert(x_new, 0, 1)
+        else:
+            X_ = X
+
+        sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
+        h_xx = x_new @ np.linalg.inv(X_.T @ X_) @ x_new.T
+
+        m_hat_x_new = x_new @ self.model.beta
+        t_crit = t.ppf(1 - alpha/2, n-p)
+        margin = t_crit * np.sqrt(sigma_hat_corr_squared*h_xx) 
+
+        return {
+            'mx_new_estimate': m_hat_x_new,
+                'confidence_lower': m_hat_x_new - margin, 
+                'confidence_upper': m_hat_x_new + margin
+                }
     
 
+    def prediction_interval_y(self, X, y, x_new, alpha=0.05):
+        '''
+        Construct prediction intervals for a new observation.
+        '''
+        y_hat = self.model.predict(X)
 
-# Significance testing
-#single coeeficient testing
-    # t-test critical value tests
-    # t-test p-value tests
+        n, p = X.shape
 
-#multiple coefficient testing
-    # F-test critical value tests
-    # F-test p-value tests
+        if self.model.include_intercept:
+            p += 1
+            X_ = np.column_stack([np.ones(X.shape[0]), X])
+            x_new = np.insert(x_new, 0, 1)
+        else:
+            X_ = X
 
-# general hypotheses RB=r
-    #F - test
+        sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
+        h_xx = x_new @ np.linalg.inv(X_.T @ X_) @ x_new.T
 
-# Confidence intervals
-    # single coefficient
-    # multiple coefficients
-    # multiple coefficients simultaneously
-    # for m(x_new) and y_new
+        m_hat_x_new = x_new @ self.model.beta
+        t_crit = t.ppf(1 - alpha/2, n-p)
+        margin = t_crit * np.sqrt(sigma_hat_corr_squared*(1+h_xx)) 
+
+        return {
+            'mx_new_estimate': m_hat_x_new,
+                'confidence_lower': m_hat_x_new - margin, 
+                'confidence_upper': m_hat_x_new + margin
+                }
+
+    
+  
 
 
