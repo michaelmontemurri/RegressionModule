@@ -1,5 +1,4 @@
 import numpy as np
-from stats_module.utils import *
 from scipy.stats import t, f
 
 class LinearModelTester:
@@ -76,8 +75,7 @@ class LinearModelTester:
 
         sigma_hat_corr_squared = np.sum((y-y_hat)**2) / (n - p)
 
-        R_beta_r = (R @ self.model.beta.T - r).reshape(-1, 1) 
-
+        R_beta_r = (R @ self.model.beta.T - r)
         F_stat = (R_beta_r.T @ np.linalg.inv(R @ np.linalg.inv(X_.T @ X_) @ R.T) @ R_beta_r / R.shape[0]) / sigma_hat_corr_squared
         p_value = 1 - f.cdf(F_stat, R.shape[0], n-p)
         reject_flag = p_value < alpha
