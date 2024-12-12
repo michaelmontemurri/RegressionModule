@@ -130,4 +130,3 @@ class LinearModelTester:
     # for m(x_new) and y_new
 
 
-
