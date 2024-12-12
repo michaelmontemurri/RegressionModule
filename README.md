@@ -1,6 +1,6 @@
-# Regression and ANOVA Module Project
+# Regression Module
 
-A package that implements estimators, hypothesis testing, diagonostics, etc. from scratch. We provide detailed examples and usage in the accompanying jupyter notebook `Documentation.ipnyb`.
+A package that implements estimators, hypothesis testing, etc. from scratch. We provide detailed examples and usage in the accompanying jupyter notebook `Documentation.ipnyb`.
 
 ---
 
