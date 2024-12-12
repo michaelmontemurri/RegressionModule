@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.stats import t, f
 
-class LinearModelTesting:
+class LinearModelTester:
     def __init__(self, model):
         self.model = model
         if self.model.beta is None:
@@ -9,9 +9,9 @@ class LinearModelTesting:
                                     "Call 'fit' with appropriate data before using this estimator.")
 
 
-    def hypothesis_test(self, X, y, null_hypothesis, alpha=0.05):
+    def hypothesis_t_test(self, X, y, null_hypothesis, alpha=0.05):
         '''
-        Perform a t-test for a single coefficient.
+        Perform a t-test for individual coefficients.
         Params:
             - X: The feature matrix.
             - y: The response vector.
@@ -40,15 +40,17 @@ class LinearModelTesting:
             reject_flag = p_value < alpha
             results.append({
                 'coefficient': i,
+                'beta_estimate': beta_j,
+                'null_value': b_j,
                 't_stat': t_stat,
                 'p_value': p_value,
                 'reject_null': reject_flag
             })
         return results
     
-    def general_hypotheses_f_test(self, X, y, R, r, alpha=0.05):
+    def hypotheses_f_test(self, X, y, R, r, alpha=0.05):
         '''
-        Perform an F-test for general hypotheses.
+        Perform an F-test for linear hypotheses Rbeta=r.
         Params:
             - X: The feature matrix.
             - y: The response vector.
@@ -72,8 +74,7 @@ class LinearModelTesting:
 
         R_beta_r = R @ self.model.beta - r
 
-        F_stat = np.sqrt((R_beta_r.T @ np.linalg.inv(R @ var_beta_hat @ R.T)) @ R_beta_r) / R.shape[0]
-
+        F_stat = (R_beta_r.T @ np.linalg.inv(R @ np.linalg.inv(X.T @ X) @ R.T) @ R_beta_r / R.shape[0]) / sigma_hat_corr
         p_value = 1 - f.cdf(F_stat, R.shape[0], n-p)
         reject_flag = p_value < alpha
         return {
@@ -84,25 +85,24 @@ class LinearModelTesting:
 
     def confidence_interval(self, X, y,  alpha=0.05):
         '''
-        Calculate a confidence interval for a single coefficient.
+        Construct confidence intervals for coefficients.
         '''
         n, p = X.shape
         if self.model.include_intercept:
             p += 1
         
         residuals = self.model.residuals(X, y)
-        var_beta_hat = np.sum(residuals**2)/(n-p) * np.linalg.inv(X.T @ X)
+        sigma_hat_corr = np.sum(residuals**2)/(n-p)
+        if self.model.include_intercept:
+            X = np.column_stack([np.ones(X.shape[0]), X])
+        
+        var_beta_hat = sigma_hat_corr * np.linalg.inv(X.T @ X)
 
         t_crit = t.ppf(1 - alpha/2, n-p)
         intervals = []
-        for i, (beta_hat_j, b_j) in enumerate(zip(self.model.beta, np.sqrt(np.diag(var_beta_hat)))):
-            lower =  - t_crit * np.sqrt(var_beta_hat[i,i])
-            upper = beta_hat_j + t_crit * np.sqrt(var_beta_hat[i,i])
-            intervals.append({
-                'coefficient': i,
-                'lower': lower,
-                'upper': upper
-            })
+        for i, beta_hat_j in enumerate(self.model.beta):
+            margin = t_crit * np.sqrt(var_beta_hat[i,i])
+            intervals.append((beta_hat_j - margin, beta_hat_j + margin))
             
     def confidence_interval_multiple_coefficients_simultaneously(self, beta_hat, se_beta_hat, alpha=0.05):
         '''
