@@ -14,6 +14,7 @@ class OLS:
         """
         self.include_intercept = include_intercept
         self.beta = None
+        self.modeltype = OLS
 
     def fit(self, X, y, use_gradient_descent=False, max_iter=1000, alpha=0.01, tol=1e-6):
         """
@@ -146,6 +147,7 @@ class GLS:
         self.include_intercept = include_intercept
         self.beta = None
         self.sigma = None
+        self.modeltype = GLS
 
     def fit(self, X, y, sigma):
         """
@@ -232,6 +234,7 @@ class Ridge:
         self.alpha = alpha
         self.include_intercept = include_intercept
         self.beta = None
+        self.modeltype = Ridge
 
     def fit(self, X, y):
         """
@@ -324,6 +327,77 @@ class Ridge:
         var_est = sigma_hat_corr(X, y, y_hat) * inv_term @ XTX @ inv_term
         print("Warning: Variance estimator assumes homoskedasticity.")
         return var_est
+    
+class ReducedModel:
+    def __init__(self, base_model, selected_features):
+        """
+        Wrapper class for reduced models.
+
+        Parameters
+        ----------
+        base_model : object
+            The base model instance (e.g., OLS, Ridge, etc.).
+        selected_features : list
+            List of selected feature indices for the reduced model (e.g, [0,1,2]).
+        """
+        if base_model.beta is None:
+            raise ValueError("The base model must be fitted before creating a ReducedModel.")
+
+        self.base_model = base_model
+        self.selected_features = selected_features
+        self.beta_reduced = self._extract_reduced_beta()
+
+    def _extract_reduced_beta(self):
+        """
+        Extract coefficients corresponding to the selected features.
+
+        Returns
+        -------
+        numpy array
+            Coefficients for the reduced model, including intercept if applicable.
+        """
+        if self.base_model.include_intercept:
+            beta_reduced = np.zeros(len(self.selected_features) + 1)
+            beta_reduced[0] = self.base_model.beta[0]  # Intercept
+            for i, feature_idx in enumerate(self.selected_features):
+                beta_reduced[i + 1] = self.base_model.beta[feature_idx + 1]
+            return beta_reduced
+        else:
+            return self.base_model.beta[self.selected_features]
+        
+    @property
+    def beta(self):
+        """
+        Return the reduced model coefficients.
+
+        Returns
+        -------
+        numpy array
+            The reduced coefficients.
+        """
+        return self.beta_reduced
+
+    def predict(self, X):
+        """
+        Predict using the reduced set of features.
+
+        Parameters
+        ----------
+        X : numpy array
+            The full feature matrix.
+
+        Returns
+        -------
+        numpy array
+            Predicted values using the reduced model coefficients.
+        """
+        if self.base_model.include_intercept:
+            X_reduced = np.column_stack([np.ones(X.shape[0]), X[:, self.selected_features]])
+        else:
+            X_reduced = X[:, self.selected_features]
+        return X_reduced @ self.beta_reduced
+    
+
 
 def summary(model, X, y):
     """

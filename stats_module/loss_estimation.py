@@ -14,11 +14,8 @@ def naive_loss_estimation(model, X, y):
        - (float)   The naive loss estimate for model over the dataset (X,y)
    """
    validate_data(X,y)
-
-   model.fit(X,y)
    y_pred = model.predict(X)
    naive_loss_estimate = np.mean((y-y_pred)**2) 
-
    return naive_loss_estimate
 
 
@@ -46,7 +43,11 @@ def train_test_loss_estimation(model, X, y, train_range, test_range):
    y_test = y[test_range]
 
    training_model = copy.deepcopy(model)
-   training_model.fit(X_train, y_train)
+   if hasattr(training_model, 'sigma'):
+        sigma_train = training_model.sigma[train_range][:, train_range]
+        training_model.fit(X_train, y_train, sigma=sigma_train)
+   else:
+        training_model.fit(X_train, y_train)
 
    return np.mean( (y_test - training_model.predict(X_test))**2 )
 
