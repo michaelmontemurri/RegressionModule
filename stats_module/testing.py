@@ -4,14 +4,6 @@ from stats_module.models import *
 from stats_module.loss_estimation import *
 
 
-# class LinearModelTester:
-#     def __init__(self, model):
-#         self.model = model
-#         if self.model.beta is None:
-#             raise ValueError("This model instance is not fitted yet. "
-#                                     "Call 'fit' with appropriate data before using this estimator.")
-
-
 def hypothesis_t_test(model, X, y, null_hypothesis, alpha=0.05):
     '''
     Perform a t-test for individual coefficients.
@@ -146,7 +138,6 @@ def prediction_interval_m(model, X, y, x_new, alpha=0.05):
             'confidence_upper': m_hat_x_new + margin
             }
 
-
 def prediction_interval_y(model, X, y, x_new, alpha=0.05):
     '''
     Construct prediction intervals for a new observation.
@@ -175,51 +166,6 @@ def prediction_interval_y(model, X, y, x_new, alpha=0.05):
             'confidence_upper': m_hat_x_new + margin
             }
 
-    
-def model_selection(X, y, models, criterion='naive'):
-    """
-        Perform model selection based on a specified criterion.
-
-        Parameters
-        ----------
-        X : Feature matrix.
-        y : Response vector.
-        models : list
-            A list of model instances to be evaluated.
-        criterion : str, default='f_stat'
-            The criterion for model selection. Options are 'naive', 'train_test', 'loo', 'f_stat'.
-
-        Returns
-        -------
-        best_model : object
-            The model instance that performs the best based on the specified criterion.
-    """
-    if criterion not in ['naive', 'train_test', 'loo', 'f_stat']:
-        raise ValueError("Invalid criterion. Choose from 'naive', 'train_test', 'loo', 'f_stat'.")
-
-    best_model = None
-    best_score = np.inf
-
-    for model in models:
-        if criterion == 'naive':
-            score = naive_loss_estimation(model, X, y)
-        elif criterion == 'train_test':
-            # Split data into training and testing sets
-            n = len(y)
-            test_size = int(0.1 * n)  
-            train_size = n - test_size  
-            train_indices = np.arange(train_size)  # First 90% as training indices
-            test_indices = np.arange(train_size, n)  # Last 10% as testing indices
-            score = train_test_loss_estimation(model, X, y, train_indices, test_indices)
-        elif criterion == 'loo':
-            score = loo_loss_estimation(model, X, y)
-        
-        if score < best_score:
-            best_score = score
-            best_model = model
-
-    return best_model
-
 def nested_model_selection_f_test(X, y, full_model, reduced_model,alpha = 0.05):
     """
         Perform nested model selection F-test. Null hypothesis is that the reduced model is correct.
@@ -238,9 +184,11 @@ def nested_model_selection_f_test(X, y, full_model, reduced_model,alpha = 0.05):
         -------
 
     """
-
     n, p_full = X.shape
-    p_reduced = len(reduced_model.beta)
+    p_reduced = len(reduced_model.selected_features)
+    if full_model.include_intercept:
+        p_full += 1
+        p_reduced += 1
 
     y_full_pred = full_model.predict(X)
     y_reduced_pred = reduced_model.predict(X)
@@ -248,8 +196,13 @@ def nested_model_selection_f_test(X, y, full_model, reduced_model,alpha = 0.05):
     sigma_hat_squared_full = np.sum((y - y_full_pred) ** 2)
     sigma_hat_squared_reduced = np.sum((y - y_reduced_pred) ** 2)
 
-    F_stat = ((sigma_hat_squared_reduced - sigma_hat_squared_full) / (p_full - p_reduced)) / (sigma_hat_squared_full / (n - p_full))
-    p_value = 1 - f.cdf(F_stat, p_full - p_reduced, n - p_full)
+    df1 = p_full - p_reduced
+    df2 = n - p_full
+
+    numerator = max((sigma_hat_squared_reduced - sigma_hat_squared_full), 0)
+
+    F_stat = (numerator/df1) / (sigma_hat_squared_full/df2)
+    p_value = 1 - f.cdf(F_stat, df1,df2)
 
     reject_flag = p_value < alpha
 
@@ -258,14 +211,3 @@ def nested_model_selection_f_test(X, y, full_model, reduced_model,alpha = 0.05):
         'p_value': p_value,
         'reject_null': reject_flag
     }
-        
-
-        
-
-
-
-
-
-
-
-
