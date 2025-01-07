@@ -1,4 +1,4 @@
-# Regression Module
+# Regression Package
 
 A package that implements estimators, hypothesis testing, etc. from scratch. We provide detailed examples and usage in the accompanying jupyter notebook `Documentation.ipnyb`.
 
